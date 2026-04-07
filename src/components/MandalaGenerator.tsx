@@ -292,6 +292,7 @@ export default function MandalaGenerator() {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const votingRef = useRef<Set<string>>(new Set());
   const svgRef = useRef<SVGSVGElement>(null);
 
   // Load user from localStorage
@@ -376,6 +377,9 @@ export default function MandalaGenerator() {
 
   const vote = useCallback(async (id: string) => {
     if (!user) return;
+    // Prevent double-tap: skip if already voting this mandala
+    if (votingRef.current.has(id)) return;
+    votingRef.current.add(id);
     // Optimistic toggle
     setGallery((p) => p.map((m) => {
       if (m.id !== id) return m;
@@ -391,7 +395,9 @@ export default function MandalaGenerator() {
         setGallery((p) => p.map((m) => m.id === id ? { ...m, votes, votedBy: votedBy || [] } : m));
       }
     } catch {
-      fetchGallery(); // revert by refetching
+      fetchGallery();
+    } finally {
+      votingRef.current.delete(id);
     }
   }, [user, fetchGallery]);
 
