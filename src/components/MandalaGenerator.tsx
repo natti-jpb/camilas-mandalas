@@ -4,10 +4,24 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import CamilaIcon from "./CamilaIcon";
 
 const COLORS = [
-  "#ffffff", "#3d3429", "#8b7355", "#c4a882", "#e8ddd0", "#d4a574",
-  "#e6c9a8", "#f0b8a8", "#d4817a", "#c06070", "#9b59b6", "#8e6bbf",
-  "#b8a9d4", "#6987a0", "#7fb3d3", "#a8d8ea", "#5b8a6e", "#88b892",
-  "#b8d4a8", "#d4cf8a", "#e8d574", "#f0c040", "#e8a040", "#d07050",
+  // Eraser + neutrals
+  "#ffffff", "#f5f0eb", "#3d3429", "#5c4a3a", "#8b7355", "#c4a882", "#e8ddd0",
+  // Warm tones
+  "#d4a574", "#e6c9a8", "#f5deb3", "#c8956c",
+  // Pinks & roses
+  "#f0b8a8", "#e8a0b0", "#d4817a", "#c06070", "#a8485c", "#f2c4d0",
+  // Purples & lavenders
+  "#9b59b6", "#8e6bbf", "#b8a9d4", "#d4c0e8", "#6a3d9a", "#c9a0dc",
+  // Blues
+  "#4a6fa5", "#6987a0", "#7fb3d3", "#a8d8ea", "#c4e0f0", "#3a5a8c",
+  // Greens
+  "#3d6b4f", "#5b8a6e", "#88b892", "#b8d4a8", "#d0e8c8", "#4a8c5c",
+  // Yellows & golds
+  "#d4cf8a", "#e8d574", "#f0c040", "#f5e090", "#c8a830",
+  // Oranges & earthy
+  "#e8a040", "#d07050", "#b85a3a", "#e0784a", "#c47840",
+  // Special
+  "#2c2c2c", "#f8f0e0", "#d4b8a0", "#a09080",
 ];
 
 interface MandalaPath { d: string; id: string; }
@@ -427,9 +441,9 @@ export default function MandalaGenerator() {
       {tab === "paint" && (
         <main className="relative z-10 flex flex-1 flex-col items-center justify-center gap-5 p-6">
           {/* Color palette */}
-          <div className="grid grid-cols-12 gap-2 p-3 rounded-2xl bg-white/60 backdrop-blur-sm border border-[#e8ddd0]/60 max-w-[380px]">
+          <div className="grid grid-cols-12 gap-1.5 p-3 rounded-2xl bg-white/60 backdrop-blur-sm border border-[#e8ddd0]/60 max-w-[420px]">
             {COLORS.map((color) => (
-              <button key={color} onClick={() => setSelectedColor(color)} className={`color-swatch w-7 h-7 rounded-full border-2 flex-shrink-0 ${selectedColor === color ? "active border-[#8b7355]" : "border-[#e8ddd0] hover:border-[#c4a882]"}`} style={{ backgroundColor: color }} title={color === "#ffffff" ? "Eraser" : color}>
+              <button key={color} onClick={() => setSelectedColor(color)} className={`color-swatch w-6 h-6 rounded-full border-2 flex-shrink-0 ${selectedColor === color ? "active border-[#8b7355]" : "border-[#e8ddd0] hover:border-[#c4a882]"}`} style={{ backgroundColor: color }} title={color === "#ffffff" ? "Eraser" : color}>
                 {color === "#ffffff" && (<svg viewBox="0 0 20 20" className="w-full h-full p-1 text-[#ccc]"><line x1="4" y1="4" x2="16" y2="16" stroke="currentColor" strokeWidth="2" /><line x1="16" y1="4" x2="4" y2="16" stroke="currentColor" strokeWidth="2" /></svg>)}
               </button>
             ))}
