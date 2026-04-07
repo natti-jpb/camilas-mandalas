@@ -1,4 +1,4 @@
-import { list, put, del } from "@vercel/blob";
+import { list, put } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
 import type { MandalaEntry } from "../route";
 
@@ -31,8 +31,7 @@ export async function POST(req: NextRequest) {
     }
     entry.votes = entry.votedBy.length;
 
-    // Delete old blob and write new one to avoid suffix issues
-    await del(blob.url);
+    // Overwrite in place — never delete first, to avoid data loss
     await put(blob.pathname, JSON.stringify(entry), {
       contentType: "application/json",
       access: "public",
