@@ -12,6 +12,7 @@ export interface MandalaEntry {
   author: string;
   userId: string;
   votes: number;
+  votedBy: string[];
   timestamp: number;
 }
 
@@ -63,6 +64,7 @@ export async function POST(req: NextRequest) {
       author: author.slice(0, 50),
       userId,
       votes: 0,
+      votedBy: [],
       timestamp: Date.now(),
     };
 

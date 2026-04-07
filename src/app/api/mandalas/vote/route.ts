@@ -4,12 +4,12 @@ import type { MandalaEntry } from "../route";
 
 export const dynamic = "force-dynamic";
 
-// POST /api/mandalas/vote — vote for a mandala
+// POST /api/mandalas/vote — toggle vote for a mandala (one per user)
 export async function POST(req: NextRequest) {
   try {
-    const { id } = await req.json();
-    if (!id) {
-      return NextResponse.json({ error: "Missing id" }, { status: 400 });
+    const { id, userId } = await req.json();
+    if (!id || !userId) {
+      return NextResponse.json({ error: "Missing id or userId" }, { status: 400 });
     }
 
     const { blobs } = await list({ prefix: `mandalas/${id}.json` });
@@ -20,14 +20,28 @@ export async function POST(req: NextRequest) {
 
     const res = await fetch(blob.url);
     const entry = (await res.json()) as MandalaEntry;
-    entry.votes += 1;
+
+    // Ensure votedBy exists (backward compat with old entries)
+    if (!entry.votedBy) entry.votedBy = [];
+
+    const alreadyVoted = entry.votedBy.includes(userId);
+
+    if (alreadyVoted) {
+      // Unlike
+      entry.votedBy = entry.votedBy.filter((u) => u !== userId);
+      entry.votes = entry.votedBy.length;
+    } else {
+      // Like
+      entry.votedBy.push(userId);
+      entry.votes = entry.votedBy.length;
+    }
 
     await put(`mandalas/${id}.json`, JSON.stringify(entry), {
       contentType: "application/json",
       access: "public",
     });
 
-    return NextResponse.json({ votes: entry.votes });
+    return NextResponse.json({ votes: entry.votes, voted: !alreadyVoted });
   } catch (error) {
     console.error("Failed to vote:", error);
     return NextResponse.json({ error: "Failed to vote" }, { status: 500 });

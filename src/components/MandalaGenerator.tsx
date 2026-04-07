@@ -35,6 +35,7 @@ interface GalleryMandala {
   author: string;
   userId: string;
   votes: number;
+  votedBy: string[];
   timestamp: number;
 }
 
@@ -374,13 +375,31 @@ export default function MandalaGenerator() {
   }, [seed, fills, user]);
 
   const vote = useCallback(async (id: string) => {
-    setGallery((p) => p.map((m) => m.id === id ? { ...m, votes: m.votes + 1 } : m));
+    if (!user) return;
+    // Optimistic toggle
+    setGallery((p) => p.map((m) => {
+      if (m.id !== id) return m;
+      const votedBy = m.votedBy || [];
+      const alreadyVoted = votedBy.includes(user.id);
+      const newVotedBy = alreadyVoted ? votedBy.filter((u) => u !== user.id) : [...votedBy, user.id];
+      return { ...m, votedBy: newVotedBy, votes: newVotedBy.length };
+    }));
     try {
-      await fetch("/api/mandalas/vote", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+      const res = await fetch("/api/mandalas/vote", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, userId: user.id }) });
+      if (res.ok) {
+        const { votes, voted } = await res.json();
+        setGallery((p) => p.map((m) => {
+          if (m.id !== id) return m;
+          const newVotedBy = voted
+            ? [...(m.votedBy || []).filter((u) => u !== user.id), user.id]
+            : (m.votedBy || []).filter((u) => u !== user.id);
+          return { ...m, votes, votedBy: newVotedBy };
+        }));
+      }
     } catch {
-      setGallery((p) => p.map((m) => m.id === id ? { ...m, votes: m.votes - 1 } : m));
+      fetchGallery(); // revert by refetching
     }
-  }, []);
+  }, [user, fetchGallery]);
 
   const deleteMandala = useCallback(async (id: string) => {
     if (!user) return;
@@ -508,10 +527,15 @@ export default function MandalaGenerator() {
                         {m.description && <p className="text-xs text-[#b8a088] line-clamp-2">{m.description}</p>}
                       </div>
                       <div className="flex items-center justify-between">
-                        <button onClick={() => vote(m.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs hover:bg-[#f0b8a8]/20 transition-all group/vote">
-                          <svg viewBox="0 0 24 24" className="w-4 h-4 text-[#d4817a] group-hover/vote:scale-110 transition-transform" fill={m.votes > 0 ? "#d4817a" : "none"} stroke="#d4817a" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg>
-                          <span className="text-[#8b7355] font-medium">{m.votes}</span>
-                        </button>
+                        {(() => {
+                          const hasVoted = (m.votedBy || []).includes(user.id);
+                          return (
+                            <button onClick={() => vote(m.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs hover:bg-[#f0b8a8]/20 transition-all group/vote">
+                              <svg viewBox="0 0 24 24" className="w-4 h-4 text-[#d4817a] group-hover/vote:scale-110 transition-transform" fill={hasVoted ? "#d4817a" : "none"} stroke="#d4817a" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg>
+                              <span className="text-[#8b7355] font-medium">{m.votes}</span>
+                            </button>
+                          );
+                        })()}
                         <div className="flex items-center gap-2 text-[10px] text-[#c4a882]">
                           <span>by {m.author}</span>
                           <span>&middot;</span>
