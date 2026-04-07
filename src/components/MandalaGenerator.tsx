@@ -5,7 +5,7 @@ import CamilaIcon from "./CamilaIcon";
 
 const COLORS = [
   // Eraser + neutrals
-  "#ffffff", "#f5f0eb", "#3d3429", "#5c4a3a", "#8b7355", "#c4a882", "#e8ddd0",
+  "#ffffff", "#3d3429", "#5c4a3a", "#8b7355", "#c4a882", "#e8ddd0",
   // Warm tones
   "#d4a574", "#e6c9a8", "#f5deb3", "#c8956c",
   // Pinks & roses
@@ -395,10 +395,6 @@ export default function MandalaGenerator() {
     setDeleteTarget(null);
   }, [user]);
 
-  const loadFromGallery = useCallback((m: GalleryMandala) => {
-    setSeed(m.seed); setFills({ ...m.fills }); setUndoStack([]); setTab("paint");
-  }, []);
-
   // Show nothing until we check localStorage
   if (!userLoaded) return null;
 
@@ -504,7 +500,7 @@ export default function MandalaGenerator() {
                   const isOwner = m.userId === user.id;
                   return (
                     <div key={m.id} className="group flex flex-col gap-3 p-5 rounded-2xl bg-white/60 backdrop-blur-sm border border-[#e8ddd0]/60 hover:border-[#c4a882]/60 transition-all duration-300 hover:shadow-lg">
-                      <div className="aspect-square rounded-xl overflow-hidden cursor-pointer bg-[#faf8f5]" onClick={() => loadFromGallery(m)}>
+                      <div className="aspect-square rounded-xl overflow-hidden bg-[#faf8f5]">
                         <MandalaPreview seed={m.seed} fills={m.fills} />
                       </div>
                       <div className="flex flex-col gap-1">
@@ -522,17 +518,9 @@ export default function MandalaGenerator() {
                           <span>{new Date(m.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        {isOwner && (
-                          <>
-                            <button onClick={() => loadFromGallery(m)} className="flex-1 py-2 text-xs uppercase tracking-wider text-[#8b7355] hover:text-[#3d3429] hover:bg-[#e8ddd0]/50 rounded-full transition-all text-center">Edit</button>
-                            <button onClick={() => setDeleteTarget(m.id)} className="flex-1 py-2 text-xs uppercase tracking-wider text-[#c4a882] hover:text-[#c06070] hover:bg-[#f0b8a8]/20 rounded-full transition-all text-center">Delete</button>
-                          </>
-                        )}
-                        {!isOwner && (
-                          <button onClick={() => loadFromGallery(m)} className="flex-1 py-2 text-xs uppercase tracking-wider text-[#8b7355] hover:text-[#3d3429] hover:bg-[#e8ddd0]/50 rounded-full transition-all text-center">Open</button>
-                        )}
-                      </div>
+                      {isOwner && (
+                        <button onClick={() => setDeleteTarget(m.id)} className="w-full py-2 text-xs uppercase tracking-wider text-[#c4a882] hover:text-[#c06070] hover:bg-[#f0b8a8]/20 rounded-full transition-all text-center">Delete</button>
+                      )}
                     </div>
                   );
                 })}
