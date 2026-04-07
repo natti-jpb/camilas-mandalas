@@ -387,14 +387,8 @@ export default function MandalaGenerator() {
     try {
       const res = await fetch("/api/mandalas/vote", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, userId: user.id }) });
       if (res.ok) {
-        const { votes, voted } = await res.json();
-        setGallery((p) => p.map((m) => {
-          if (m.id !== id) return m;
-          const newVotedBy = voted
-            ? [...(m.votedBy || []).filter((u) => u !== user.id), user.id]
-            : (m.votedBy || []).filter((u) => u !== user.id);
-          return { ...m, votes, votedBy: newVotedBy };
-        }));
+        const { votes, votedBy } = await res.json();
+        setGallery((p) => p.map((m) => m.id === id ? { ...m, votes, votedBy: votedBy || [] } : m));
       }
     } catch {
       fetchGallery(); // revert by refetching

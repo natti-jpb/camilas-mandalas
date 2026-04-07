@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify ownership
-    const res = await fetch(blob.url);
+    const res = await fetch(blob.url, { cache: "no-store" });
     const entry = (await res.json()) as MandalaEntry;
     if (entry.userId !== userId) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });

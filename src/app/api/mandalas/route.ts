@@ -24,8 +24,9 @@ export async function GET() {
     const mandalas: MandalaEntry[] = [];
     for (const blob of blobs) {
       try {
-        const res = await fetch(blob.url);
+        const res = await fetch(blob.url, { cache: "no-store" });
         const data = (await res.json()) as MandalaEntry;
+        if (!data.votedBy) data.votedBy = [];
         mandalas.push(data);
       } catch {
         // skip corrupted entries
@@ -71,6 +72,7 @@ export async function POST(req: NextRequest) {
     await put(`mandalas/${id}.json`, JSON.stringify(entry), {
       contentType: "application/json",
       access: "public",
+      addRandomSuffix: false,
     });
 
     return NextResponse.json(entry, { status: 201 });
