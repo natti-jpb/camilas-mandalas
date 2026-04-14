@@ -1,5 +1,6 @@
 import { list, put } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
+import { getAllVotes } from "@/lib/votes";
 
 export const dynamic = "force-dynamic";
 
@@ -16,17 +17,22 @@ export interface MandalaEntry {
   timestamp: number;
 }
 
-// GET /api/mandalas — list all saved mandalas
+// GET /api/mandalas — list all saved mandalas with vote counts
 export async function GET() {
   try {
-    const { blobs } = await list({ prefix: "mandalas/" });
+    const [{ blobs }, votesMap] = await Promise.all([
+      list({ prefix: "mandalas/" }),
+      getAllVotes(),
+    ]);
 
     const mandalas: MandalaEntry[] = [];
     for (const blob of blobs) {
       try {
-        const res = await fetch(blob.url, { cache: "no-store" });
+        const res = await fetch(blob.url);
         const data = (await res.json()) as MandalaEntry;
-        if (!data.votedBy) data.votedBy = [];
+        // Merge votes from separate vote blobs
+        data.votedBy = votesMap[data.id] || [];
+        data.votes = data.votedBy.length;
         mandalas.push(data);
       } catch {
         // skip corrupted entries
@@ -35,14 +41,16 @@ export async function GET() {
 
     mandalas.sort((a, b) => b.votes - a.votes || b.timestamp - a.timestamp);
 
-    return NextResponse.json(mandalas);
+    return NextResponse.json(mandalas, {
+      headers: { "Cache-Control": "no-store, no-cache, must-revalidate" },
+    });
   } catch (error) {
     console.error("Failed to list mandalas:", error);
     return NextResponse.json([], { status: 200 });
   }
 }
 
-// POST /api/mandalas — save a new mandala
+// POST /api/mandalas — save a new mandala (immutable)
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -73,6 +81,7 @@ export async function POST(req: NextRequest) {
       contentType: "application/json",
       access: "public",
       addRandomSuffix: false,
+      cacheControlMaxAge: 31536000,
     });
 
     return NextResponse.json(entry, { status: 201 });

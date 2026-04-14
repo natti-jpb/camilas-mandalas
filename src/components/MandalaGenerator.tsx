@@ -111,6 +111,22 @@ function saveUser(user: UserInfo) {
   localStorage.setItem("camilas-user", JSON.stringify(user));
 }
 
+// --- Vote localStorage helpers ---
+
+const MY_VOTES_KEY = "camilas-my-votes";
+
+function getMyVotes(): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = localStorage.getItem(MY_VOTES_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch { return new Set(); }
+}
+
+function saveMyVotes(votes: Set<string>) {
+  localStorage.setItem(MY_VOTES_KEY, JSON.stringify([...votes]));
+}
+
 // --- Sub-components ---
 
 function MandalaPreview({ seed, fills }: { seed: number; fills: Record<string, string> }) {
@@ -292,12 +308,14 @@ export default function MandalaGenerator() {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [myVotes, setMyVotes] = useState<Set<string>>(new Set());
   const votingRef = useRef<Set<string>>(new Set());
   const svgRef = useRef<SVGSVGElement>(null);
 
   // Load user from localStorage
   useEffect(() => {
     setUser(getUser());
+    setMyVotes(getMyVotes());
     setUserLoaded(true);
   }, []);
 
@@ -377,29 +395,38 @@ export default function MandalaGenerator() {
 
   const vote = useCallback(async (id: string) => {
     if (!user) return;
-    // Prevent double-tap: skip if already voting this mandala
     if (votingRef.current.has(id)) return;
     votingRef.current.add(id);
-    // Optimistic toggle
+
+    // Toggle heart in localStorage immediately
+    const nowVoted = !myVotes.has(id);
+    const newMyVotes = new Set(myVotes);
+    if (nowVoted) newMyVotes.add(id); else newMyVotes.delete(id);
+    setMyVotes(newMyVotes);
+    saveMyVotes(newMyVotes);
+
+    // Optimistic count update
     setGallery((p) => p.map((m) => {
       if (m.id !== id) return m;
-      const votedBy = m.votedBy || [];
-      const alreadyVoted = votedBy.includes(user.id);
-      const newVotedBy = alreadyVoted ? votedBy.filter((u) => u !== user.id) : [...votedBy, user.id];
-      return { ...m, votedBy: newVotedBy, votes: newVotedBy.length };
+      return { ...m, votes: m.votes + (nowVoted ? 1 : -1) };
     }));
+
     try {
       const res = await fetch("/api/mandalas/vote", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, userId: user.id }) });
       if (res.ok) {
-        const { votes, votedBy } = await res.json();
-        setGallery((p) => p.map((m) => m.id === id ? { ...m, votes, votedBy: votedBy || [] } : m));
+        const { votes } = await res.json();
+        setGallery((p) => p.map((m) => m.id === id ? { ...m, votes } : m));
       }
     } catch {
+      // Revert localStorage on failure
+      if (nowVoted) newMyVotes.delete(id); else newMyVotes.add(id);
+      setMyVotes(newMyVotes);
+      saveMyVotes(newMyVotes);
       fetchGallery();
     } finally {
       votingRef.current.delete(id);
     }
-  }, [user, fetchGallery]);
+  }, [user, myVotes, fetchGallery]);
 
   const deleteMandala = useCallback(async (id: string) => {
     if (!user) return;
@@ -528,7 +555,7 @@ export default function MandalaGenerator() {
                       </div>
                       <div className="flex items-center justify-between">
                         {(() => {
-                          const hasVoted = (m.votedBy || []).includes(user.id);
+                          const hasVoted = myVotes.has(m.id);
                           return (
                             <button onClick={() => vote(m.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs hover:bg-[#f0b8a8]/20 transition-all group/vote">
                               <svg viewBox="0 0 24 24" className="w-4 h-4 text-[#d4817a] group-hover/vote:scale-110 transition-transform" fill={hasVoted ? "#d4817a" : "none"} stroke="#d4817a" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg>

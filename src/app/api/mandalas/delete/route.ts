@@ -1,10 +1,10 @@
 import { list, del } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
 import type { MandalaEntry } from "../route";
+import { deleteVotesForMandala } from "@/lib/votes";
 
 export const dynamic = "force-dynamic";
 
-// POST /api/mandalas/delete — delete a mandala (owner only)
 export async function POST(req: NextRequest) {
   try {
     const { id, userId } = await req.json();
@@ -19,13 +19,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify ownership
-    const res = await fetch(blob.url, { cache: "no-store" });
+    const res = await fetch(blob.url);
     const entry = (await res.json()) as MandalaEntry;
     if (entry.userId !== userId) {
       return NextResponse.json({ error: "Not authorized" }, { status: 403 });
     }
 
-    await del(blob.url);
+    await Promise.all([
+      del(blob.url),
+      deleteVotesForMandala(id),
+    ]);
 
     return NextResponse.json({ success: true });
   } catch (error) {
