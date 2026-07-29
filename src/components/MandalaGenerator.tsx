@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import CamilaIcon from "./CamilaIcon";
+import { withBasePath } from "@/lib/basePath";
 
 const COLORS = [
   // Eraser + neutrals
@@ -154,7 +155,7 @@ function AuthScreen({ onAuth }: { onAuth: (user: UserInfo) => void }) {
     setError("");
     setLoading(true);
     try {
-      const res = await fetch("/api/auth", {
+      const res = await fetch(withBasePath("/api/auth"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: mode, name: name.trim(), password }),
@@ -332,7 +333,7 @@ export default function MandalaGenerator() {
   const fetchGallery = useCallback(async () => {
     setGalleryLoading(true);
     try {
-      const res = await fetch("/api/mandalas");
+      const res = await fetch(withBasePath("/api/mandalas"));
       if (res.ok) setGallery(await res.json());
     } catch { /* silent */ } finally { setGalleryLoading(false); }
   }, []);
@@ -379,7 +380,7 @@ export default function MandalaGenerator() {
     if (!user) return;
     setSaving(true);
     try {
-      const res = await fetch("/api/mandalas", {
+      const res = await fetch(withBasePath("/api/mandalas"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ seed, fills, name, description, author: user.name, userId: user.id }),
@@ -412,7 +413,7 @@ export default function MandalaGenerator() {
     }));
 
     try {
-      const res = await fetch("/api/mandalas/vote", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, userId: user.id }) });
+      const res = await fetch(withBasePath("/api/mandalas/vote"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, userId: user.id }) });
       if (res.ok) {
         const { votes } = await res.json();
         setGallery((p) => p.map((m) => m.id === id ? { ...m, votes } : m));
@@ -431,7 +432,7 @@ export default function MandalaGenerator() {
   const deleteMandala = useCallback(async (id: string) => {
     if (!user) return;
     try {
-      const res = await fetch("/api/mandalas/delete", {
+      const res = await fetch(withBasePath("/api/mandalas/delete"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, userId: user.id }),
